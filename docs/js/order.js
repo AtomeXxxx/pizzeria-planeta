@@ -1,5 +1,18 @@
 import { formatPrice } from './config.js';
 
+export function formatPaymentMethod(method = '') {
+  switch (method) {
+    case 'card':
+      return 'Karta przy odbiorze';
+    case 'blik':
+      return 'Blik';
+    case 'gateway':
+      return 'Bramka płatności';
+    default:
+      return 'Nie wybrano';
+  }
+}
+
 export async function sendOrder(orderData, config) {
   const emailConfig = config?.email;
 
@@ -27,6 +40,9 @@ async function sendOrderEmailJS(orderData, config, emailConfig) {
     customer_email: orderData.email || 'brak',
     order_type: orderData.type === 'delivery' ? 'Dostawa' : 'Odbiór osobisty',
     delivery_address: orderData.address,
+    payment_method: orderData.type === 'pickup'
+      ? formatPaymentMethod(orderData.paymentMethod)
+      : 'Nie dotyczy',
     order_items: itemsList,
     order_subtotal: formatPrice(orderData.totals.subtotal),
     order_delivery: orderData.totals.deliveryFee > 0
@@ -60,6 +76,7 @@ Telefon: ${orderData.phone}
 Email: ${orderData.email || 'brak'}
 Typ: ${orderData.type === 'delivery' ? 'Dostawa' : 'Odbiór osobisty'}
 Adres: ${orderData.address}
+Płatność: ${orderData.type === 'pickup' ? formatPaymentMethod(orderData.paymentMethod) : 'Nie dotyczy'}
 
 POZYCJE:
 ${itemsList}

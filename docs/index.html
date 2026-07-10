@@ -223,6 +223,7 @@
       <div class="footer__bottom">
         <span>&copy; 2026 Pizzeria Planeta Elbląg</span>
         <span>Wszystkie prawa zastrzeżone</span>
+        <span>Strona stworzona przez <strong>Jakuba Frąszczyaka</strong></span>
       </div>
     </div>
   </footer>
@@ -290,6 +291,24 @@
         <div class="input-group" id="address-group">
           <label for="address">Adres dostawy *</label>
           <input type="text" id="address" name="address" placeholder="ul. Przykładowa 1, Elbląg">
+        </div>
+
+        <div class="input-group payment-group" id="payment-group" style="display: none;">
+          <label>Forma płatności</label>
+          <div class="payment-options">
+            <label class="payment-option">
+              <input type="radio" name="paymentMethod" value="card" checked>
+              <span>Karta przy odbiorze</span>
+            </label>
+            <label class="payment-option">
+              <input type="radio" name="paymentMethod" value="blik">
+              <span>Blik</span>
+            </label>
+            <label class="payment-option">
+              <input type="radio" name="paymentMethod" value="gateway">
+              <span>Bramka płatności</span>
+            </label>
+          </div>
         </div>
 
         <div class="input-group">

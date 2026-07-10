@@ -33,17 +33,20 @@ export function initCartUI() {
       btn.classList.add('active');
       orderType = btn.dataset.type;
       toggleAddressField();
+      togglePaymentField();
     });
   });
 
   document.getElementById('order-form')?.addEventListener('submit', handleSubmit);
   document.querySelector('[data-tab="order"]')?.addEventListener('click', () => {
     toggleAddressField();
+    togglePaymentField();
   });
 
   subscribe(renderCart);
   renderCart();
   toggleAddressField();
+  togglePaymentField();
 }
 
 function openCart() {
@@ -71,6 +74,21 @@ function toggleAddressField() {
   const addressGroup = document.getElementById('address-group');
   if (addressGroup) {
     addressGroup.style.display = orderType === 'delivery' ? 'block' : 'none';
+  }
+}
+
+function togglePaymentField() {
+  const paymentGroup = document.getElementById('payment-group');
+  if (!paymentGroup) return;
+
+  paymentGroup.style.display = orderType === 'pickup' ? 'block' : 'none';
+
+  if (orderType === 'pickup') {
+    const checkedPayment = document.querySelector('input[name="paymentMethod"]:checked');
+    if (!checkedPayment) {
+      const defaultPayment = document.querySelector('input[name="paymentMethod"][value="card"]');
+      if (defaultPayment) defaultPayment.checked = true;
+    }
   }
 }
 
@@ -163,6 +181,9 @@ async function handleSubmit(e) {
     address: orderType === 'delivery' ? form.address.value.trim() : 'Odbiór osobisty',
     notes: form.notes.value.trim(),
     type: orderType,
+    paymentMethod: orderType === 'pickup'
+      ? form.querySelector('input[name="paymentMethod"]:checked')?.value || 'card'
+      : '',
     items: cart,
     totals: getCartTotal(config?.delivery)
   };
@@ -177,6 +198,11 @@ async function handleSubmit(e) {
     return;
   }
 
+  if (orderType === 'pickup' && !orderData.paymentMethod) {
+    showToast('Wybierz formę płatności', true);
+    return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span class="spinner"></span> Wysyłanie...';
 
@@ -187,6 +213,7 @@ async function handleSubmit(e) {
     form.reset();
     orderType = 'delivery';
     toggleAddressField();
+    togglePaymentField();
     closeCart();
   } catch (err) {
     showToast(err.message || 'Błąd wysyłania zamówienia', true);
