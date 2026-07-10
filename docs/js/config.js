@@ -86,22 +86,37 @@ const fallbackMenu = {
 };
 
 export async function loadConfig() {
+  // allow overrides from localStorage (set by admin page)
   try {
-    const [configRes, menuRes] = await Promise.all([
-      fetch('data/config.json', { cache: 'no-store' }),
-      fetch('data/menu.json', { cache: 'no-store' })
-    ]);
+    const localConfig = localStorage.getItem('siteConfig');
+    const localMenu = localStorage.getItem('menuData');
 
-    if (!configRes.ok || !menuRes.ok) {
-      throw new Error('Nie udało się pobrać danych z serwera');
+    if (localConfig) {
+      siteConfig = JSON.parse(localConfig);
     }
 
-    siteConfig = await configRes.json();
-    menuData = await menuRes.json();
+    if (localMenu) {
+      menuData = JSON.parse(localMenu);
+    }
+
+    // if not present in localStorage, fetch from disk
+    if (!siteConfig || !menuData) {
+      const [configRes, menuRes] = await Promise.all([
+        fetch('data/config.json', { cache: 'no-store' }),
+        fetch('data/menu.json', { cache: 'no-store' })
+      ]);
+
+      if (!configRes.ok || !menuRes.ok) {
+        throw new Error('Nie udało się pobrać danych z serwera');
+      }
+
+      siteConfig = siteConfig || await configRes.json();
+      menuData = menuData || await menuRes.json();
+    }
   } catch (err) {
     console.warn('Używam danych awaryjnych strony:', err);
-    siteConfig = fallbackConfig;
-    menuData = fallbackMenu;
+    siteConfig = siteConfig || fallbackConfig;
+    menuData = menuData || fallbackMenu;
   }
 
   return { siteConfig, menuData };
@@ -113,6 +128,28 @@ export function getConfig() {
 
 export function getMenu() {
   return menuData || fallbackMenu;
+}
+
+// allow admin UI to set temporary overrides stored in localStorage
+export function setConfigOverrides({ site, menu }) {
+  try {
+    if (site) localStorage.setItem('siteConfig', JSON.stringify(site));
+    if (menu) localStorage.setItem('menuData', JSON.stringify(menu));
+    // update in-memory copies so changes apply without reload
+    if (site) siteConfig = site;
+    if (menu) menuData = menu;
+    return true;
+  } catch (err) {
+    console.error('Nie udało się zapisać override:', err);
+    return false;
+  }
+}
+
+export function clearConfigOverrides() {
+  localStorage.removeItem('siteConfig');
+  localStorage.removeItem('menuData');
+  siteConfig = null;
+  menuData = null;
 }
 
 export function formatPrice(price) {
