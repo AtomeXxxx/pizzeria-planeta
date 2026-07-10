@@ -92,7 +92,8 @@
   display: block;
   margin-bottom: 0.4rem;
   font-size: 0.875rem;
-  color: var(--color-text-muted);
+  color: var(--color-text);
+  font-weight: 500;
 }
 
 .input-group input,

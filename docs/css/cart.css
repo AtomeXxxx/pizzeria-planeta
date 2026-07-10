@@ -88,6 +88,7 @@
 .cart-item__name {
   font-weight: 600;
   margin-bottom: 0.25rem;
+  color: var(--color-text);
 }
 
 .cart-item__size {
@@ -113,27 +114,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-elevated);
+  background: var(--color-primary);
+  color: white;
   border-radius: var(--radius-sm);
   font-size: 1.1rem;
-  transition: background var(--transition-fast);
+  font-weight: 600;
+  transition: all var(--transition-fast);
 }
 
 .qty-btn:hover {
-  background: var(--color-primary);
+  background: var(--color-primary-light);
+  transform: scale(1.1);
 }
 
 .cart-item__qty {
   min-width: 24px;
   text-align: center;
   font-weight: 600;
+  color: var(--color-text);
 }
 
 .cart-item__remove {
-  color: var(--color-text-muted);
+  color: var(--color-text);
   font-size: 0.8rem;
   margin-left: auto;
   transition: color var(--transition-fast);
+  cursor: pointer;
 }
 
 .cart-item__remove:hover {
@@ -154,7 +160,8 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: 0.5rem;
-  color: var(--color-text-muted);
+  color: var(--color-text);
+  font-weight: 500;
 }
 
 .cart-summary__row.total {
@@ -188,15 +195,18 @@
   padding: 0.875rem;
   border-radius: var(--radius-sm);
   border: 2px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
   text-align: center;
   font-weight: 600;
   transition: all var(--transition-fast);
+  cursor: pointer;
 }
 
 .order-type__btn.active {
   border-color: var(--color-primary);
-  background: rgba(230, 57, 70, 0.1);
-  color: var(--color-primary);
+  background: var(--color-primary);
+  color: white;
 }
 
 .payment-group {
@@ -219,10 +229,21 @@
   border-radius: var(--radius-sm);
   background: var(--color-bg-elevated);
   cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.payment-option:hover {
+  background: var(--color-bg);
+  border-color: var(--color-primary);
 }
 
 .payment-option input {
   accent-color: var(--color-primary);
+}
+
+.payment-option span {
+  color: var(--color-text);
+  font-weight: 500;
 }
 
 .order-form .btn-primary {
