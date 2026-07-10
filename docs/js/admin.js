@@ -1,4 +1,5 @@
 import { setConfigOverrides, clearConfigOverrides } from './config.js';
+import { initAdminMenuEditor } from './admin-menu.js';
 
 const PASS = 'admin';
 
@@ -17,6 +18,7 @@ function showPanel() {
   loginEl.style.display = 'none';
   panelEl.style.display = 'block';
   loadFiles();
+  initAdminMenuEditor();
 }
 
 function hidePanel() {
