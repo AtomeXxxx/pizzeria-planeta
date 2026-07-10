@@ -1,5 +1,6 @@
 import { setConfigOverrides, clearConfigOverrides } from './config.js';
 import { initAdminMenuEditor } from './admin-menu.js';
+import { buildGithubContentsPayload, getDefaultGithubRepo } from './github-sync.js';
 
 const PASS = 'admin';
 
@@ -13,6 +14,7 @@ const menuArea = document.getElementById('menu-json');
 const applyBtn = document.getElementById('apply-btn');
 const downloadBtn = document.getElementById('download-btn');
 const clearBtn = document.getElementById('clear-btn');
+const saveRepoBtn = document.getElementById('save-repo-btn');
 
 function showPanel() {
   loginEl.style.display = 'none';
@@ -67,6 +69,61 @@ applyBtn.addEventListener('click', () => {
     else alert('Błąd zapisu.');
   } catch (err) {
     alert('Błąd w JSON: ' + err.message);
+  }
+});
+
+saveRepoBtn?.addEventListener('click', async () => {
+  try {
+    const site = JSON.parse(configArea.value);
+    const menu = JSON.parse(menuArea.value);
+    const repo = getDefaultGithubRepo();
+
+    const configPayload = buildGithubContentsPayload(JSON.stringify(site, null, 2), 'Aktualizacja config.json z panelu admina');
+    const menuPayload = buildGithubContentsPayload(JSON.stringify(menu, null, 2), 'Aktualizacja menu.json z panelu admina');
+
+    const token = prompt('Wklej token GitHub z uprawnieniami repo');
+    if (!token) return;
+
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json'
+    };
+
+    const configRes = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/contents/docs/data/config.json?ref=${repo.branch}`, {
+      method: 'GET',
+      headers
+    });
+    const configFile = await configRes.json();
+    await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/contents/docs/data/config.json`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        ...configPayload,
+        sha: configFile.sha,
+        branch: repo.branch
+      })
+    });
+
+    const menuRes = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/contents/docs/data/menu.json?ref=${repo.branch}`, {
+      method: 'GET',
+      headers
+    });
+    const menuFile = await menuRes.json();
+    await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/contents/docs/data/menu.json`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        ...menuPayload,
+        sha: menuFile.sha,
+        branch: repo.branch
+      })
+    });
+
+    setConfigOverrides({ site, menu });
+    alert('Zmiany zapisane w repozytorium i zastosowane globalnie.');
+  } catch (err) {
+    console.error(err);
+    alert('Nie udało się zapisać zmian w repozytorium: ' + err.message);
   }
 });
 
