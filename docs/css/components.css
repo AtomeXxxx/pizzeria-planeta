@@ -26,14 +26,14 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
   color: white;
-  box-shadow: var(--shadow-glow);
+  box-shadow: 0 0 30px rgba(255, 107, 107, 0.4);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 50px rgba(230, 57, 70, 0.5);
+  box-shadow: 0 0 50px rgba(230, 57, 70, 0.6);
 }
 
 .btn-secondary {
