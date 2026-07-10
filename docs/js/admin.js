@@ -15,12 +15,15 @@ const applyBtn = document.getElementById('apply-btn');
 const downloadBtn = document.getElementById('download-btn');
 const clearBtn = document.getElementById('clear-btn');
 const saveRepoBtn = document.getElementById('save-repo-btn');
+const saveTokenBtn = document.getElementById('save-token-btn');
+const githubTokenInput = document.getElementById('github-token');
 
 function showPanel() {
   loginEl.style.display = 'none';
   panelEl.style.display = 'block';
   loadFiles();
   initAdminMenuEditor();
+  loadStoredToken();
 }
 
 function hidePanel() {
@@ -39,6 +42,22 @@ loginBtn.addEventListener('click', () => {
 logoutBtn.addEventListener('click', () => {
   hidePanel();
   passInput.value = '';
+});
+
+function loadStoredToken() {
+  const token = localStorage.getItem('github_token') || '';
+  if (githubTokenInput) githubTokenInput.value = token;
+  return token;
+}
+
+saveTokenBtn?.addEventListener('click', () => {
+  const token = githubTokenInput?.value?.trim() || '';
+  if (!token) {
+    alert('Wpisz token GitHub');
+    return;
+  }
+  localStorage.setItem('github_token', token);
+  alert('Token zapisany lokalnie w tej przeglądarce.');
 });
 
 async function loadFiles() {
@@ -81,7 +100,7 @@ saveRepoBtn?.addEventListener('click', async () => {
     const configPayload = buildGithubContentsPayload(JSON.stringify(site, null, 2), 'Aktualizacja config.json z panelu admina');
     const menuPayload = buildGithubContentsPayload(JSON.stringify(menu, null, 2), 'Aktualizacja menu.json z panelu admina');
 
-    const token = prompt('Wklej token GitHub z uprawnieniami repo');
+    const token = loadStoredToken() || prompt('Wklej token GitHub z uprawnieniami repo');
     if (!token) return;
 
     const headers = {
@@ -121,6 +140,9 @@ saveRepoBtn?.addEventListener('click', async () => {
 
     setConfigOverrides({ site, menu });
     alert('Zmiany zapisane w repozytorium i zastosowane globalnie.');
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 800);
   } catch (err) {
     console.error(err);
     alert('Nie udało się zapisać zmian w repozytorium: ' + err.message);
