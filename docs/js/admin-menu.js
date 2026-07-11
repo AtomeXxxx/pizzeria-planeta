@@ -2,18 +2,17 @@ import { getMenu, setConfigOverrides } from './config.js';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1604382894740-747abb3801bb?w=600&q=80';
 
-export function initAdminMenuEditor() {
+export async function initAdminMenuEditor() {
   const container = document.getElementById('admin-menu-editor');
   if (!container) return;
 
   if (container.dataset.adminEditorInitialized === '1') {
-    refreshAdminMenuEditor();
+    await refreshAdminMenuEditor();
     return;
   }
 
   container.dataset.adminEditorInitialized = '1';
-  const menu = getMenu();
-  renderEditor(container, menu);
+  await refreshAdminMenuEditor();
 
   container.addEventListener('click', (e) => {
     const addBtn = e.target.closest('[data-action="add-item"]');
@@ -322,14 +321,50 @@ function rerender() {
   refreshAdminMenuEditor();
 }
 
-export function refreshAdminMenuEditor() {
+export async function refreshAdminMenuEditor() {
   const container = document.getElementById('admin-menu-editor');
   if (!container) return;
-  renderEditor(container, getMenu());
+
+  const menu = await loadMenuFromServer();
+  renderEditor(container, menu);
+}
+
+async function loadMenuFromServer() {
+  const menuArea = typeof document !== 'undefined' ? document.getElementById('menu-json') : null;
+
+  if (menuArea?.value) {
+    try {
+      const parsed = JSON.parse(menuArea.value);
+      if (parsed && Array.isArray(parsed.categories)) {
+        return normalizeMenu(parsed);
+      }
+    } catch (err) {
+      console.warn('Nie udało się sparsować menu z pola edycji:', err);
+    }
+  }
+
+  try {
+    const res = await fetch('data/menu.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data && Array.isArray(data.categories)) {
+      setConfigOverrides({ menu: data });
+      return normalizeMenu(data);
+    }
+  } catch (err) {
+    console.warn('Nie udało się pobrać menu z pliku, używam aktualnego stanu:', err);
+  }
+
+  return normalizeMenu(getMenu());
 }
 
 function normalizeMenu(menu) {
-  const categories = Array.isArray(menu?.categories) ? menu.categories : [];
+  const categories = Array.isArray(menu?.categories)
+    ? menu.categories.map(category => ({
+        ...category,
+        items: Array.isArray(category?.items) ? category.items : []
+      }))
+    : [];
   return { ...(menu || {}), categories };
 }
 
