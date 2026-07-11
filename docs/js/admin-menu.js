@@ -6,6 +6,12 @@ export function initAdminMenuEditor() {
   const container = document.getElementById('admin-menu-editor');
   if (!container) return;
 
+  if (container.dataset.adminEditorInitialized === '1') {
+    refreshAdminMenuEditor();
+    return;
+  }
+
+  container.dataset.adminEditorInitialized = '1';
   const menu = getMenu();
   renderEditor(container, menu);
 
@@ -63,13 +69,14 @@ export function initAdminMenuEditor() {
 }
 
 function renderEditor(container, menu) {
+  const safeMenu = normalizeMenu(menu);
   const html = `
     <div class="admin-menu-editor__toolbar">
       <h3>Edytor menu graficznego</h3>
       <p>Dodawaj, usuwaj i edytuj kategorie oraz pozycje. Zmiany są od razu podglądane, a zapis następuje jednym przyciskiem.</p>
       <button class="btn btn-primary" type="button" data-action="add-category">+ Dodaj kategorię</button>
     </div>
-    ${menu.categories.map(category => `
+    ${safeMenu.categories.map(category => `
       <section class="admin-menu-category">
         <form data-editor-form="category" data-category-id="${category.id}">
           <div class="admin-menu-category__header">
@@ -312,9 +319,18 @@ function persistMenu(menu) {
 }
 
 function rerender() {
+  refreshAdminMenuEditor();
+}
+
+export function refreshAdminMenuEditor() {
   const container = document.getElementById('admin-menu-editor');
   if (!container) return;
   renderEditor(container, getMenu());
+}
+
+function normalizeMenu(menu) {
+  const categories = Array.isArray(menu?.categories) ? menu.categories : [];
+  return { ...(menu || {}), categories };
 }
 
 function syncMenuTextarea() {

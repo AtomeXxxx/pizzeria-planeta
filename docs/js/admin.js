@@ -1,5 +1,5 @@
 import { setConfigOverrides, clearConfigOverrides } from './config.js';
-import { initAdminMenuEditor } from './admin-menu.js';
+import { initAdminMenuEditor, refreshAdminMenuEditor } from './admin-menu.js';
 import { buildGithubContentsPayload, getDefaultGithubRepo } from './github-sync.js';
 
 const PASS = 'admin';
@@ -17,10 +17,10 @@ const saveRepoBtn = document.getElementById('save-repo-btn');
 const saveTokenBtn = document.getElementById('save-token-btn');
 const githubTokenInput = document.getElementById('github-token');
 
-function showPanel() {
+async function showPanel() {
   loginEl.style.display = 'none';
   panelEl.style.display = 'block';
-  loadFiles();
+  await loadFiles();
   initAdminMenuEditor();
   loadStoredToken();
 }
@@ -30,9 +30,9 @@ function hidePanel() {
   panelEl.style.display = 'none';
 }
 
-loginBtn.addEventListener('click', () => {
+loginBtn.addEventListener('click', async () => {
   if (passInput.value === PASS) {
-    showPanel();
+    await showPanel();
   } else {
     alert('Niepoprawne hasło');
   }
@@ -72,6 +72,7 @@ async function loadFiles() {
     configArea.value = JSON.stringify(cfg, null, 2);
     menuArea.value = JSON.stringify(menu, null, 2);
     setConfigOverrides({ site: cfg, menu });
+    refreshAdminMenuEditor();
   } catch (err) {
     console.error(err);
     configArea.value = '{}';
@@ -163,7 +164,7 @@ clearBtn.addEventListener('click', () => {
 
 // Auto-show if already logged in (sessionStorage)
 if (sessionStorage.getItem('admin_logged') === '1') {
-  showPanel();
+  showPanel().catch(err => console.error(err));
 }
 
 // remember login for session
