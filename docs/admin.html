@@ -15,7 +15,11 @@
     .notice { margin-top:0.5rem; color: var(--color-text-muted); }
     .admin-menu-editor__toolbar { margin-bottom: 1rem; }
     .admin-menu-category { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-bg-elevated); }
-    .admin-menu-category__header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem; }
+    .admin-menu-category__header { display:flex; justify-content:space-between; align-items:flex-start; gap: 1rem; margin-bottom: 0.75rem; }
+    .admin-menu-category__title-group { display:flex; flex-wrap:wrap; gap:0.75rem; }
+    .admin-menu-category__field { display:flex; flex-direction:column; gap:0.3rem; font-weight:500; min-width: 200px; }
+    .admin-menu-category__field input { min-width: 180px; }
+    .admin-menu-category__actions { display:flex; flex-wrap:wrap; gap:0.5rem; }
     .admin-menu-category__items { display:grid; gap:0.75rem; }
     .admin-menu-item-card { display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background: var(--color-bg); border-radius: 8px; border: 1px solid var(--color-border); }
     .admin-menu-item-card img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
@@ -44,8 +48,7 @@
       <div style="display:flex;gap:1rem;align-items:center;justify-content:space-between;">
         <h2>Edytuj ustawienia</h2>
         <div>
-          <button id="apply-btn" class="btn btn-primary">Zastosuj (localStorage)</button>
-          <button id="save-repo-btn" class="btn">Zapisz globalnie</button>
+          <button id="save-repo-btn" class="btn btn-primary">Zapisz globalnie</button>
           <button id="download-btn" class="btn">Pobierz JSON</button>
           <button id="clear-btn" class="btn btn-secondary">Wyczyść override</button>
           <button id="logout-btn" class="btn">Wyloguj</button>
@@ -74,7 +77,7 @@
         <div id="admin-item-editor" style="margin-top:1rem;"></div>
       </div>
 
-      <p class="notice">Uwaga: zmiany zapisane z tego panelu są tymczasowe (localStorage). Aby zapisać na stałe, pobierz pliki JSON i zaktualizuj `docs/data/` lub użyj CI/CD.</p>
+      <p class="notice">Zmiany są od razu podglądane w panelu. Przyciskiem Zapisz globalnie zapisujesz je lokalnie i na GitHub, dzięki czemu działają także na GitHub Pages.</p>
     </div>
   </div>
 

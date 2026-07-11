@@ -1,6 +1,38 @@
 let siteConfig = null;
 let menuData = null;
 
+const storage = typeof globalThis !== 'undefined' && 'localStorage' in globalThis ? globalThis.localStorage : null;
+
+function readStoredValue(key) {
+  if (!storage) return null;
+  try {
+    return storage.getItem(key);
+  } catch (err) {
+    console.warn('Nie udało się odczytać z localStorage:', err);
+    return null;
+  }
+}
+
+function writeStoredValue(key, value) {
+  if (!storage) return false;
+  try {
+    storage.setItem(key, value);
+    return true;
+  } catch (err) {
+    console.warn('Nie udało się zapisać do localStorage:', err);
+    return false;
+  }
+}
+
+function removeStoredValue(key) {
+  if (!storage) return;
+  try {
+    storage.removeItem(key);
+  } catch (err) {
+    console.warn('Nie udało się usunąć z localStorage:', err);
+  }
+}
+
 const fallbackConfig = {
   restaurant: {
     name: 'Pizzeria Planeta',
@@ -88,8 +120,8 @@ const fallbackMenu = {
 export async function loadConfig() {
   // allow overrides from localStorage (set by admin page)
   try {
-    const localConfig = localStorage.getItem('siteConfig');
-    const localMenu = localStorage.getItem('menuData');
+    const localConfig = readStoredValue('siteConfig');
+    const localMenu = readStoredValue('menuData');
 
     if (localConfig) {
       siteConfig = JSON.parse(localConfig);
@@ -133,8 +165,8 @@ export function getMenu() {
 // allow admin UI to set temporary overrides stored in localStorage
 export function setConfigOverrides({ site, menu }) {
   try {
-    if (site) localStorage.setItem('siteConfig', JSON.stringify(site));
-    if (menu) localStorage.setItem('menuData', JSON.stringify(menu));
+    if (site) writeStoredValue('siteConfig', JSON.stringify(site));
+    if (menu) writeStoredValue('menuData', JSON.stringify(menu));
     // update in-memory copies so changes apply without reload
     if (site) siteConfig = site;
     if (menu) menuData = menu;
@@ -146,8 +178,8 @@ export function setConfigOverrides({ site, menu }) {
 }
 
 export function clearConfigOverrides() {
-  localStorage.removeItem('siteConfig');
-  localStorage.removeItem('menuData');
+  removeStoredValue('siteConfig');
+  removeStoredValue('menuData');
   siteConfig = null;
   menuData = null;
 }

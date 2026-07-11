@@ -11,7 +11,6 @@ const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const configArea = document.getElementById('config-json');
 const menuArea = document.getElementById('menu-json');
-const applyBtn = document.getElementById('apply-btn');
 const downloadBtn = document.getElementById('download-btn');
 const clearBtn = document.getElementById('clear-btn');
 const saveRepoBtn = document.getElementById('save-repo-btn');
@@ -72,24 +71,13 @@ async function loadFiles() {
 
     configArea.value = JSON.stringify(cfg, null, 2);
     menuArea.value = JSON.stringify(menu, null, 2);
+    setConfigOverrides({ site: cfg, menu });
   } catch (err) {
     console.error(err);
     configArea.value = '{}';
     menuArea.value = '{}';
   }
 }
-
-applyBtn.addEventListener('click', () => {
-  try {
-    const site = JSON.parse(configArea.value);
-    const menu = JSON.parse(menuArea.value);
-    const ok = setConfigOverrides({ site, menu });
-    if (ok) alert('Zastosowano zmiany lokalnie. Odśwież stronę aby zobaczyć zmiany.');
-    else alert('Błąd zapisu.');
-  } catch (err) {
-    alert('Błąd w JSON: ' + err.message);
-  }
-});
 
 saveRepoBtn?.addEventListener('click', async () => {
   try {

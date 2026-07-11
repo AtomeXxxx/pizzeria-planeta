@@ -13,7 +13,15 @@ export function initAdminMenuEditor() {
     const addBtn = e.target.closest('[data-action="add-item"]');
     if (addBtn) {
       const categoryId = addBtn.dataset.categoryId;
-      addItemToCategory(categoryId);
+      addItemToCategory(getMenu(), categoryId);
+      rerender();
+      return;
+    }
+
+    const addCategoryBtn = e.target.closest('[data-action="add-category"]');
+    if (addCategoryBtn) {
+      addCategoryToMenu(getMenu());
+      rerender();
       return;
     }
 
@@ -30,9 +38,23 @@ export function initAdminMenuEditor() {
       removeItem(itemId);
       return;
     }
+
+    const removeCategoryBtn = e.target.closest('[data-action="remove-category"]');
+    if (removeCategoryBtn) {
+      const categoryId = removeCategoryBtn.dataset.categoryId;
+      removeCategory(categoryId);
+      return;
+    }
   });
 
   container.addEventListener('submit', (e) => {
+    const categoryForm = e.target.closest('form[data-editor-form="category"]');
+    if (categoryForm) {
+      e.preventDefault();
+      saveCategoryForm(categoryForm);
+      return;
+    }
+
     const form = e.target.closest('form[data-editor-form="item"]');
     if (!form) return;
     e.preventDefault();
@@ -43,55 +65,121 @@ export function initAdminMenuEditor() {
 function renderEditor(container, menu) {
   const html = `
     <div class="admin-menu-editor__toolbar">
-      <h3>Edytor menu</h3>
-      <p>Dodawaj pozycje, edytuj nazwę, cenę, opis i zdjęcie.</p>
+      <h3>Edytor menu graficznego</h3>
+      <p>Dodawaj, usuwaj i edytuj kategorie oraz pozycje. Zmiany są od razu podglądane, a zapis następuje jednym przyciskiem.</p>
+      <button class="btn btn-primary" type="button" data-action="add-category">+ Dodaj kategorię</button>
     </div>
     ${menu.categories.map(category => `
       <section class="admin-menu-category">
-        <div class="admin-menu-category__header">
-          <strong>${category.name}</strong>
-          <button class="btn btn-sm" data-action="add-item" data-category-id="${category.id}">+ Dodaj pozycję</button>
-        </div>
-        <div class="admin-menu-category__items">
-          ${(category.items || []).map(item => `
-            <div class="admin-menu-item-card">
-              <img src="${item.image || DEFAULT_IMAGE}" alt="${item.name}" />
-              <div>
-                <div class="admin-menu-item-card__title">${item.name}</div>
-                <div class="admin-menu-item-card__price">${item.price} zł</div>
-              </div>
-              <div class="admin-menu-item-card__actions">
-                <button class="btn btn-sm" data-action="edit-item" data-item-id="${item.id}">✎</button>
-                <button class="btn btn-sm btn-secondary" data-action="remove-item" data-item-id="${item.id}">🗑</button>
-              </div>
+        <form data-editor-form="category" data-category-id="${category.id}">
+          <div class="admin-menu-category__header">
+            <div class="admin-menu-category__title-group">
+              <label class="admin-menu-category__field">
+                <span>Nazwa kategorii</span>
+                <input name="categoryName" value="${escapeHtml(category.name)}" required>
+              </label>
+              <label class="admin-menu-category__field">
+                <span>Ikona</span>
+                <input name="categoryIcon" value="${escapeHtml(category.icon || '🍕')}">
+              </label>
             </div>
-          `).join('')}
-        </div>
+            <div class="admin-menu-category__actions">
+              <button class="btn btn-sm btn-primary" type="submit">💾</button>
+              <button class="btn btn-sm" type="button" data-action="add-item" data-category-id="${category.id}">+ Pozycja</button>
+              <button class="btn btn-sm btn-secondary" type="button" data-action="remove-category" data-category-id="${category.id}">🗑</button>
+            </div>
+          </div>
+          <div class="admin-menu-category__items">
+            ${(category.items || []).map(item => `
+              <div class="admin-menu-item-card">
+                <img src="${item.image || DEFAULT_IMAGE}" alt="${item.name}" />
+                <div>
+                  <div class="admin-menu-item-card__title">${escapeHtml(item.name)}</div>
+                  <div class="admin-menu-item-card__price">${Number(item.price || 0).toFixed(2).replace('.', ',')} zł</div>
+                </div>
+                <div class="admin-menu-item-card__actions">
+                  <button class="btn btn-sm" type="button" data-action="edit-item" data-item-id="${item.id}">✎ Edytuj</button>
+                  <button class="btn btn-sm btn-secondary" type="button" data-action="remove-item" data-item-id="${item.id}">🗑</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </form>
       </section>
     `).join('')}
   `;
 
   container.innerHTML = html;
+  syncMenuTextarea();
 }
 
-function addItemToCategory(categoryId) {
-  const menu = getMenu();
+export function addCategoryToMenu(menu, name = 'Nowa kategoria', icon = '📋') {
+  const category = {
+    id: `category-${Date.now()}`,
+    name,
+    icon,
+    items: []
+  };
+  menu.categories.push(category);
+  persistMenu(menu);
+  return category;
+}
+
+export function addItemToCategory(menu, categoryId, defaults = {}) {
   const category = menu.categories.find(c => c.id === categoryId);
-  if (!category) return;
+  if (!category) return null;
 
   const newItem = {
-    id: `item-${Date.now()}`,
-    name: 'Nowa pozycja',
-    description: 'Opis pozycji',
-    price: 0,
-    image: DEFAULT_IMAGE,
-    tags: []
+    id: defaults.id || `item-${Date.now()}`,
+    name: defaults.name || 'Nowa pozycja',
+    description: defaults.description || 'Opis pozycji',
+    price: Number(defaults.price ?? 0),
+    image: defaults.image || DEFAULT_IMAGE,
+    tags: Array.isArray(defaults.tags) ? defaults.tags : [],
+    sizes: Array.isArray(defaults.sizes) ? defaults.sizes : []
   };
 
   category.items.push(newItem);
   persistMenu(menu);
-  rerender();
-  openItemEditor(newItem.id);
+  return newItem;
+}
+
+export function updateCategoryInMenu(menu, categoryId, updates) {
+  const category = menu.categories.find(c => c.id === categoryId);
+  if (!category) return null;
+
+  if (typeof updates?.name === 'string') category.name = updates.name.trim() || category.name;
+  if (typeof updates?.icon === 'string') category.icon = updates.icon.trim() || category.icon;
+
+  persistMenu(menu);
+  return category;
+}
+
+export function updateItemInMenu(menu, itemId, updates) {
+  const item = findItem(menu, itemId);
+  if (!item) return null;
+
+  if (typeof updates?.name === 'string') item.name = updates.name.trim() || 'Nowa pozycja';
+  if (typeof updates?.description === 'string') item.description = updates.description;
+  if (typeof updates?.price !== 'undefined') item.price = Number(updates.price) || 0;
+  if (typeof updates?.image === 'string') item.image = updates.image.trim() || DEFAULT_IMAGE;
+  if (Array.isArray(updates?.tags)) item.tags = updates.tags;
+  if (Array.isArray(updates?.sizes)) item.sizes = updates.sizes;
+
+  persistMenu(menu);
+  return item;
+}
+
+function saveCategoryForm(form) {
+  const menu = getMenu();
+  const categoryId = form.dataset.categoryId;
+  const category = updateCategoryInMenu(menu, categoryId, {
+    name: form.elements.categoryName.value,
+    icon: form.elements.categoryIcon.value
+  });
+  if (category) {
+    rerender();
+  }
 }
 
 function openItemEditor(itemId) {
@@ -108,6 +196,9 @@ function openItemEditor(itemId) {
     'https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=600&q=80',
     'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=80'
   ];
+
+  const tagsValue = (item.tags || []).join(', ');
+  const sizesValue = (item.sizes || []).map(size => `${size.name}:${size.priceModifier ?? 0}`).join('\n');
 
   panel.innerHTML = `
     <form data-editor-form="item">
@@ -132,6 +223,14 @@ function openItemEditor(itemId) {
             ${imageOptions.map(url => `<option value="${url}" ${url === (item.image || DEFAULT_IMAGE) ? 'selected' : ''}>${url}</option>`).join('')}
           </select>
         </label>
+        <label>
+          <span>Tagi (oddziel przecinkami)</span>
+          <input name="tags" value="${escapeHtml(tagsValue)}" placeholder="bestseller, pikantna">
+        </label>
+        <label>
+          <span>Rozmiary (jedna pozycja na linię, format: nazwa:modifikator)</span>
+          <textarea name="sizes" placeholder="30 cm:-5\n40 cm:0">${escapeHtml(sizesValue)}</textarea>
+        </label>
       </div>
       <div class="admin-item-editor__actions">
         <button class="btn btn-primary" type="submit">Zapisz pozycję</button>
@@ -147,13 +246,32 @@ function saveItemForm(form) {
   const item = findItem(menu, id);
   if (!item) return;
 
-  item.name = form.elements.name.value.trim() || 'Nowa pozycja';
-  item.description = form.elements.description.value.trim();
-  item.price = Number(form.elements.price.value) || 0;
-  const preset = form.elements.imagePreset.value;
-  item.image = form.elements.image.value.trim() || preset || DEFAULT_IMAGE;
+  const tags = form.elements.tags.value
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(Boolean);
 
-  persistMenu(menu);
+  const sizes = form.elements.sizes.value
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      const [name, modifier] = line.split(':');
+      return {
+        name: name?.trim() || 'Rozmiar',
+        priceModifier: Number(modifier ?? 0)
+      };
+    });
+
+  updateItemInMenu(menu, id, {
+    name: form.elements.name.value,
+    description: form.elements.description.value,
+    price: form.elements.price.value,
+    image: form.elements.image.value || form.elements.imagePreset.value,
+    tags,
+    sizes
+  });
+
   rerender();
   document.getElementById('admin-item-editor').innerHTML = '';
 }
@@ -171,6 +289,15 @@ function removeItem(itemId) {
   rerender();
 }
 
+function removeCategory(categoryId) {
+  const menu = getMenu();
+  const before = menu.categories.length;
+  menu.categories = (menu.categories || []).filter(category => category.id !== categoryId);
+  if (menu.categories.length === before) return;
+  persistMenu(menu);
+  rerender();
+}
+
 function findItem(menu, itemId) {
   for (const category of menu.categories || []) {
     const found = (category.items || []).find(item => item.id === itemId);
@@ -181,12 +308,21 @@ function findItem(menu, itemId) {
 
 function persistMenu(menu) {
   setConfigOverrides({ menu });
+  syncMenuTextarea();
 }
 
 function rerender() {
   const container = document.getElementById('admin-menu-editor');
   if (!container) return;
   renderEditor(container, getMenu());
+}
+
+function syncMenuTextarea() {
+  if (typeof document === 'undefined') return;
+  const menuArea = document.getElementById('menu-json');
+  if (menuArea) {
+    menuArea.value = JSON.stringify(getMenu(), null, 2);
+  }
 }
 
 function escapeHtml(value) {
