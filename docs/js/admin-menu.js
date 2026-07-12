@@ -1,6 +1,9 @@
 import { getMenu, setConfigOverrides } from './config.js';
+import { buildImageUploadPath, uploadImageToGitHub } from './image-upload.js';
+import { getDefaultGithubRepo } from './github-sync.js';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1604382894740-747abb3801bb?w=600&q=80';
+const UPLOADS_URL = 'assets/uploads/';
 
 export async function initAdminMenuEditor() {
   const container = document.getElementById('admin-menu-editor');
@@ -15,6 +18,13 @@ export async function initAdminMenuEditor() {
   await refreshAdminMenuEditor();
 
   container.addEventListener('click', (e) => {
+    const uploadBtn = e.target.closest('[data-action="upload-image"]');
+    if (uploadBtn) {
+      e.preventDefault();
+      openImageUploadPanel(uploadBtn.dataset.target);
+      return;
+    }
+
     const addBtn = e.target.closest('[data-action="add-item"]');
     if (addBtn) {
       const categoryId = addBtn.dataset.categoryId;
@@ -53,6 +63,13 @@ export async function initAdminMenuEditor() {
   });
 
   document.addEventListener('submit', (e) => {
+    const imageUploadForm = e.target.closest('form[data-editor-form="image-upload"]');
+    if (imageUploadForm) {
+      e.preventDefault();
+      submitImageUpload(imageUploadForm);
+      return;
+    }
+
     const categoryForm = e.target.closest('form[data-editor-form="category"]');
     if (categoryForm) {
       e.preventDefault();
@@ -73,7 +90,10 @@ function renderEditor(container, menu) {
     <div class="admin-menu-editor__toolbar">
       <h3>Edytor menu graficznego</h3>
       <p>Dodawaj, usuwaj i edytuj kategorie oraz pozycje. Zmiany są od razu podglądane, a zapis następuje jednym przyciskiem.</p>
-      <button class="btn btn-primary" type="button" data-action="add-category">+ Dodaj kategorię</button>
+      <div class="admin-menu-editor__toolbar-actions">
+        <button class="btn btn-primary" type="button" data-action="add-category">+ Dodaj kategorię</button>
+        <button class="btn" type="button" data-action="upload-image" data-target="admin-item-editor">📷 Wgraj obraz</button>
+      </div>
     </div>
     ${safeMenu.categories.map(category => `
       <section class="admin-menu-category">
@@ -206,6 +226,8 @@ function openItemEditor(itemId) {
   const tagsValue = (item.tags || []).join(', ');
   const sizesValue = (item.sizes || []).map(size => `${size.name}:${size.priceModifier ?? 0}`).join('\n');
 
+  const uploadedImages = getUploadedImages();
+
   panel.innerHTML = `
     <form data-editor-form="item">
       <input type="hidden" name="itemId" value="${item.id}">
@@ -228,6 +250,15 @@ function openItemEditor(itemId) {
           <select name="imagePreset">
             ${imageOptions.map(url => `<option value="${url}" ${url === (item.image || DEFAULT_IMAGE) ? 'selected' : ''}>${url}</option>`).join('')}
           </select>
+          <div class="admin-image-picker" style="margin-top:0.5rem;display:grid;gap:0.5rem;">
+            ${uploadedImages.length ? uploadedImages.map(image => `
+              <label class="admin-image-picker__option" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                <input type="radio" name="imageChoice" value="${escapeHtml(image.url)}" ${image.url === (item.image || DEFAULT_IMAGE) ? 'checked' : ''}>
+                <img src="${image.url}" alt="${escapeHtml(image.name)}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;" />
+                <span style="font-size:0.9rem;">${escapeHtml(image.name)}</span>
+              </label>
+            `).join('') : '<p style="color:var(--color-text-muted);font-size:0.9rem;">Brak wgranych obrazów. Wgraj pierwszy plik używając przycisku.</p>'}
+          </div>
         </label>
         <label>
           <span>Tagi (oddziel przecinkami)</span>
@@ -269,11 +300,13 @@ export function saveItemForm(form) {
       };
     });
 
+  const selectedImage = form.elements.imageChoice?.value || form.elements.image.value || form.elements.imagePreset.value;
+
   updateItemInMenu(menu, id, {
     name: form.elements.name.value,
     description: form.elements.description.value,
     price: form.elements.price.value,
-    image: form.elements.image.value || form.elements.imagePreset.value,
+    image: selectedImage || DEFAULT_IMAGE,
     tags,
     sizes
   });
@@ -315,6 +348,90 @@ function findItem(menu, itemId) {
 function persistMenu(menu) {
   setConfigOverrides({ menu });
   syncMenuTextarea();
+}
+
+function getUploadedImages() {
+  try {
+    const raw = localStorage.getItem('admin_uploaded_images');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.warn('Nie udało się odczytać listy obrazów:', err);
+    return [];
+  }
+}
+
+function saveUploadedImages(images) {
+  try {
+    localStorage.setItem('admin_uploaded_images', JSON.stringify(images));
+  } catch (err) {
+    console.warn('Nie udało się zapisać listy obrazów:', err);
+  }
+}
+
+function openImageUploadPanel(targetId) {
+  const panel = document.getElementById(targetId || 'admin-item-editor');
+  if (!panel) return;
+
+  const uploadedImages = getUploadedImages();
+  panel.innerHTML = `
+    <form data-editor-form="image-upload" class="admin-image-upload-form">
+      <label style="display:flex;flex-direction:column;gap:0.35rem;font-weight:600;">
+        <span>Wgraj obraz do strony</span>
+        <input type="file" name="imageFile" accept="image/*" required>
+      </label>
+      <div class="admin-image-upload-form__actions" style="display:flex;gap:0.75rem;margin-top:0.75rem;">
+        <button class="btn btn-primary" type="submit">Wgraj obraz</button>
+        <button class="btn btn-secondary" type="button" onclick="this.closest('#${targetId || 'admin-item-editor'}').innerHTML=''">Anuluj</button>
+      </div>
+      ${uploadedImages.length ? `<div style="margin-top:1rem;display:grid;gap:0.5rem;">${uploadedImages.map(image => `
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem;border:1px solid var(--color-border);border-radius:8px;">
+          <img src="${image.url}" alt="${escapeHtml(image.name)}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;" />
+          <div>
+            <div style="font-weight:600;">${escapeHtml(image.name)}</div>
+            <div style="font-size:0.85rem;color:var(--color-text-muted);">${escapeHtml(image.url)}</div>
+          </div>
+        </div>
+      `).join('')}</div>` : ''}
+    </form>
+  `;
+}
+
+async function submitImageUpload(form) {
+  const fileInput = form.elements.imageFile;
+  const file = fileInput?.files?.[0];
+  if (!file) return;
+
+  const token = localStorage.getItem('github_token') || '';
+  if (!token) {
+    alert('Najpierw zapisz token GitHub w panelu admina.');
+    return;
+  }
+
+  const repo = getDefaultGithubRepo();
+  try {
+    const uploaded = await uploadImageToGitHub({
+      file,
+      token,
+      repo,
+      branch: repo.branch,
+      onProgress: () => {}
+    });
+
+    const images = getUploadedImages();
+    images.unshift({
+      name: file.name,
+      url: uploaded.downloadUrl || uploaded.htmlUrl || buildImageUploadPath(file.name).replace('docs/', '')
+    });
+    saveUploadedImages(images.slice(0, 20));
+
+    alert('Obraz został wgrany i jest dostępny do wyboru.');
+    openImageUploadPanel('admin-item-editor');
+  } catch (err) {
+    console.error(err);
+    alert(err.message || 'Nie udało się wgrać obrazka.');
+  }
 }
 
 function rerender() {
