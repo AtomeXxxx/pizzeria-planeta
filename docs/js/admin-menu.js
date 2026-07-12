@@ -52,7 +52,7 @@ export async function initAdminMenuEditor() {
     }
   });
 
-  container.addEventListener('submit', (e) => {
+  document.addEventListener('submit', (e) => {
     const categoryForm = e.target.closest('form[data-editor-form="category"]');
     if (categoryForm) {
       e.preventDefault();
@@ -176,7 +176,7 @@ export function updateItemInMenu(menu, itemId, updates) {
   return item;
 }
 
-function saveCategoryForm(form) {
+export function saveCategoryForm(form) {
   const menu = getMenu();
   const categoryId = form.dataset.categoryId;
   const category = updateCategoryInMenu(menu, categoryId, {
@@ -246,7 +246,7 @@ function openItemEditor(itemId) {
   `;
 }
 
-function saveItemForm(form) {
+export function saveItemForm(form) {
   const menu = getMenu();
   const id = form.elements.itemId.value;
   const item = findItem(menu, id);

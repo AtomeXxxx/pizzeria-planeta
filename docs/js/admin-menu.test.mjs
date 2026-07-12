@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { addCategoryToMenu, addItemToCategory, updateCategoryInMenu, updateItemInMenu } from './admin-menu.js';
+import { addCategoryToMenu, addItemToCategory, saveItemForm, updateCategoryInMenu, updateItemInMenu } from './admin-menu.js';
+import { setConfigOverrides } from './config.js';
 
 test('updateCategoryInMenu updates category name and icon without losing items', () => {
   const menu = {
@@ -71,4 +72,57 @@ test('updateItemInMenu edits item fields and preserves the id', () => {
   assert.equal(updated.price, 35);
   assert.deepEqual(updated.tags, ['bestseller']);
   assert.equal(updated.sizes[0].name, '30 cm');
+});
+
+test('saveItemForm persists form edits for an existing item', () => {
+  const menu = {
+    categories: [
+      {
+        id: 'cat-1',
+        name: 'Pizza',
+        icon: '🍕',
+        items: [{ id: 'item-1', name: 'Margherita', description: '', price: 30, image: '', tags: [], sizes: [] }]
+      }
+    ]
+  };
+
+  setConfigOverrides({ menu });
+
+  global.document = {
+    getElementById(id) {
+      if (id === 'admin-menu-editor') {
+        return { innerHTML: '' };
+      }
+      if (id === 'menu-json') {
+        return { value: JSON.stringify(menu) };
+      }
+      if (id === 'admin-item-editor') {
+        return { innerHTML: '' };
+      }
+      return null;
+    }
+  };
+
+  const form = {
+    elements: {
+      itemId: { value: 'item-1' },
+      name: { value: 'Capriciosa' },
+      description: { value: 'Pyszna' },
+      price: { value: '35' },
+      image: { value: 'https://example.com/pizza.jpg' },
+      imagePreset: { value: '' },
+      tags: { value: 'bestseller' },
+      sizes: { value: '30 cm:-5' }
+    }
+  };
+
+  saveItemForm(form);
+
+  const item = menu.categories[0].items[0];
+  assert.equal(item.name, 'Capriciosa');
+  assert.equal(item.description, 'Pyszna');
+  assert.equal(item.price, 35);
+  assert.equal(item.image, 'https://example.com/pizza.jpg');
+  assert.deepEqual(item.tags, ['bestseller']);
+  assert.equal(item.sizes[0].name, '30 cm');
 });
