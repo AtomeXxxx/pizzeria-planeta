@@ -108,11 +108,14 @@ Aby zamówienia automatycznie trafiały na email właściciela:
 1. Załóż darmowe konto na [emailjs.com](https://www.emailjs.com)
 2. Dodaj usługę email (Gmail, Outlook itp.)
 3. Utwórz szablon email z polami:
+   - `{{to_email}}`
    - `{{customer_name}}`, `{{customer_phone}}`, `{{customer_email}}`
-   - `{{order_type}}`, `{{delivery_address}}`
-   - `{{order_items}}`, `{{order_total}}`, `{{order_notes}}`
-4. Skopiuj **Service ID**, **Template ID** i **Public Key**
-5. Wklej je w `data/config.json`:
+   - `{{order_type}}`, `{{delivery_address}}`, `{{payment_method}}`
+   - `{{order_items}}`, `{{order_subtotal}}`, `{{order_delivery}}`, `{{order_total}}`
+   - `{{order_notes}}`, `{{restaurant_name}}`
+4. W EmailJS ustaw odbiorcę wiadomości na adres z pola `ownerEmail` albo zostaw pustą wartość w szablonie, jeśli aplikacja ma go wypełniać dynamicznie.
+5. Skopiuj **Service ID**, **Template ID** i **Public Key**.
+6. Wklej je w `data/config.json`:
 
 ```json
 "email": {

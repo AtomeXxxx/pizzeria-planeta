@@ -13,6 +13,10 @@ export function formatPaymentMethod(method = '') {
   }
 }
 
+export function getOrderRecipientEmail(config = {}) {
+  return config?.email?.ownerEmail || config?.restaurant?.email || '';
+}
+
 export async function sendOrder(orderData, config) {
   const emailConfig = config?.email;
 
@@ -34,7 +38,7 @@ async function sendOrderEmailJS(orderData, config, emailConfig) {
   }).join('\n');
 
   const templateParams = {
-    to_email: emailConfig.ownerEmail,
+    to_email: getOrderRecipientEmail(config),
     customer_name: orderData.name,
     customer_phone: orderData.phone,
     customer_email: orderData.email || 'brak',
@@ -88,7 +92,7 @@ RAZEM: ${formatPrice(orderData.totals.total)}
 Uwagi: ${orderData.notes || 'Brak'}
 `.trim();
 
-  const ownerEmail = config?.email?.ownerEmail || config?.restaurant?.email;
+  const ownerEmail = getOrderRecipientEmail(config);
 
   const mailtoLink = `mailto:${ownerEmail}?subject=${encodeURIComponent('Nowe zamówienie - ' + orderData.name)}&body=${encodeURIComponent(body)}`;
 

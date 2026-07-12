@@ -37,10 +37,10 @@
     "logo": "assets/logo.svg"
   },
   "email": {
-    "serviceId": "TWOJ_SERVICE_ID",
-    "templateId": "TWOJ_TEMPLATE_ID",
-    "publicKey": "TWOJ_PUBLIC_KEY",
-    "ownerEmail": "wlasciciel@pizzeriaplaneta.pl",
+    "serviceId": "service_ahjzk6w",
+    "templateId": "template_74g2h86",
+    "publicKey": "FseStReH0oZTPn86p",
+    "ownerEmail": "kakaskubaxd@gail.com",
     "note": "Skonfiguruj EmailJS na https://www.emailjs.com - darmowy plan wystarczy na start"
   },
   "delivery": {
